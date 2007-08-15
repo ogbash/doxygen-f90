@@ -1,0 +1,48 @@
+#
+# 
+#
+# Copyright (C) 1997-2007 by Dimitri van Heesch.
+# 
+# Permission to use, copy, modify, and distribute this software and its
+# documentation under the terms of the GNU General Public License is hereby 
+# granted. No representations are made about the suitability of this software 
+# for any purpose. It is provided "as is" without express or implied warranty.
+# See the GNU General Public License for more details.
+# 
+
+all: version.cpp config.h config.l portable.h portable.cpp Makefile.doxywizard  
+	$(MAKE) -f Makefile.doxywizard QTDIR=$(QTDIR) $@
+
+version.cpp: ../../src/version.cpp
+	$(CP) ../../src/version.cpp version.cpp
+
+portable.cpp: ../../src/portable.cpp
+	$(CP) ../../src/portable.cpp portable.cpp
+
+portable.h: ../../src/portable.h
+	$(CP) ../../src/portable.h portable.h
+
+config.h: ../../src/config.h
+	$(CP) ../../src/config.h config.h
+
+config.l: ../../src/config.l
+	$(CP) ../../src/config.l config.l
+
+Makefile.doxywizard: doxywizard.pro 
+	$(ENV) $(PERL) $(TMAKE) doxywizard.pro >Makefile.doxywizard
+
+tmake: 
+	$(ENV) $(PERL) $(TMAKE) doxywizard.pro >Makefile.doxywizard
+
+clean: Makefile.doxywizard 
+	$(MAKE) -f Makefile.doxywizard clean 
+	$(RM) config.cpp 
+
+distclean: clean
+	$(RM) Makefile.doxywizard version.cpp config.l config.h portable.h portable.cpp
+
+install:
+	$(INSTTOOL) -d $(INSTALL)/bin	
+	$(INSTTOOL) -m 755 ../../bin/doxywizard $(INSTALL)/bin	
+
+FORCE:
