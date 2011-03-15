@@ -172,6 +172,7 @@ static Protection        defaultProtection;
 static InterfaceType     ifType = IF_NONE;
 
 static char              stringStartSymbol; // single or double quote
+static bool 		 parsingPrototype = FALSE; // see parsePrototype()
 
 //! Accumulated modifiers of current statement, eg variable declaration.
 static SymbolModifiers currentModifiers;
@@ -288,6 +289,11 @@ PREFIX    (RECURSIVE{BS_}|PURE{BS_}|ELEMENTAL{BS_}){0,2}(RECURSIVE|PURE|ELEMENTA
 %x	DocBlock
 %x	DocBackLine
 %x	EndDoc
+
+/** prototype parsing */
+%x  	Prototype
+%x  	PrototypeSubprog
+%x	PrototypeArgs
 
 %%
 
@@ -962,6 +968,23 @@ private                                 {
                                           yy_pop_state();                                          
   					}
 
+ /*-----Prototype parsing -------------------------------------------------------------------------*/
+<Prototype>{BS}{SUBPROG}{BS_}		{
+					  BEGIN(PrototypeSubprog);
+					}
+<PrototypeSubprog>{ID}{BS}		{ current->name = yytext;
+					  current->name.stripWhiteSpace();
+					  BEGIN(PrototypeArgs);
+					 }
+<PrototypeArgs>{
+"("|")"|","|{BS_}			{ current->args += yytext; }
+{ID}					{ current->args += yytext; 
+					  Argument *a = new Argument;
+					  a->name = yytext;
+					  current->argList->append(a);
+					}
+}
+
  /*------------------------------------------------------------------------------------------------*/
 
 <*>"\n"                                 {
@@ -974,7 +997,10 @@ private                                 {
  /*---- error: EOF in wrong state --------------------------------------------------------------------*/
 
 <*><<EOF>>                              {
-                                          if ( include_stack_ptr <= 0 ) {
+					  if (parsingPrototype) {
+					    yyterminate();
+
+					  } else if ( include_stack_ptr <= 0 ) {
                                             if (YY_START!=INITIAL && YY_START!=Start) {
                                               //fprintf(stderr,"==== Error: EOF reached in wrong state (end missing)");
                                               scanner_abort();
@@ -2039,7 +2065,13 @@ void FortranLanguageScanner::resetCodeParserState()
 
 void FortranLanguageScanner::parsePrototype(const char *text)
 {
-  (void)text;
+  QCString buffer = text;
+  pushBuffer(buffer);
+  parsingPrototype = TRUE;
+  BEGIN(Prototype);
+  fscanYYlex();
+  parsingPrototype = FALSE;
+  popBuffer();
 }
 
 static void scanner_abort() 
