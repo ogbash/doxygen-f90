@@ -1225,22 +1225,29 @@ static const char* prepassFixedForm(const char* contents)
       case 'C':
       case 'c':
       case '*':
+        if (column!=6)
+        {
 	emptyLabel=FALSE;
         if(column==1)
 	  newContents[j]='!';
         else
           newContents[j]=c;
         break;
+        }
       default:
         if(column==6 && emptyLabel) { // continuation
-          newContents[j]=' ';
+          if (c != '0') { // 0 not allowed as continuatioin character, see f95 standard paragraph 3.3.2.3
+            newContents[j]=' ';
 
-          if(prevLineAmpOrExclIndex==-1) { // add & just before end of previous line
-            insertCharacter(newContents, j+1, (j+1)-6-1, '&');
-            j++;
-          } else { // add & just before end of previous line comment
-            insertCharacter(newContents, j+1, (j+1)-6-prevLineLength+prevLineAmpOrExclIndex, '&');
-            j++;
+            if(prevLineAmpOrExclIndex==-1) { // add & just before end of previous line
+              insertCharacter(newContents, j+1, (j+1)-6-1, '&');
+              j++;
+            } else { // add & just before end of previous line comment
+              insertCharacter(newContents, j+1, (j+1)-6-prevLineLength+prevLineAmpOrExclIndex, '&');
+              j++;
+            }
+	  } else {
+	    newContents[j]=c; // , just handle like space
           }
 	} else {
 	  newContents[j]=c;
