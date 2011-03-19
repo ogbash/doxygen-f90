@@ -624,7 +624,9 @@ private                                 {
 
  /*------- module/global/typedef variable ---------------------------------------------------*/
 
-<SubprogBody,SubprogBodyContains>^{BS}[0-9]*{BS}"end"({BS}{SUBPROG}({BS_}{ID})?)?{BS}/(\n|!) {  
+<SubprogBody,SubprogBodyContains>^{BS}[0-9]*{BS}"end"({BS}{SUBPROG}({BS_}{ID})?)?{BS}/(\n|!) {
+			                   if (current_root->section == Entry::FUNCTION_SEC) 
+					      docBlockInBody = FALSE;
                                            //
                                            // ABSTRACT and specific interfaces are stored
                                            // in a scope of their own, even if multiple
@@ -984,10 +986,16 @@ private                                 {
                                             popBuffer();
                                           }
                                         }
- <*>.                 	                {
+ <*>.                 	                { // ignore remaining text 
                                           //debugStr+=yytext;
 					  //printf("I:%c\n", *yytext);
-                                        } // ignore remaining text 
+
+					  if (!docBlockInBody && current_root->section==Entry::FUNCTION_SEC)
+					     if (yytext[0]!=' ' && yytext[0]!='\t') {
+					     	docBlockInBody = TRUE;
+						//printf("FOUND: '%c'\n", yytext[0]);
+					     }
+                                        } 
 
  /**********************************************************************************/
  /**********************************************************************************/
@@ -1883,16 +1891,16 @@ static void startCommentBlock(bool brief)
   //----------------------------------------------------------------------------
 static void handleCommentBlock(const QCString &doc,bool brief)
 {
-  docBlockInBody = FALSE;
+  //docBlockInBody = FALSE;
   bool needsEntry = FALSE;
   static bool hideInBodyDocs = Config_getBool("HIDE_IN_BODY_DOCS");
   int position=0;
   if (docBlockInBody && hideInBodyDocs) return;
-  //fprintf(stderr,"call parseCommentBlock [%s]\n",doc.data());
+  //fprintf(stderr,"call parseCommentBlock %d [%s]\n", docBlockInBody, doc.data());
   int lineNr = brief ? current->briefLine : current->docLine;
   while (parseCommentBlock(
 	g_thisParser,
-	docBlockInBody ? last_entry : current,
+	docBlockInBody ? current_root : current,
 	doc,        // text
 	yyFileName, // file
 	lineNr,
@@ -1937,6 +1945,7 @@ static void parseMain(const char *fileName,const char *fileBuf,Entry *rt)
   inputPosition = 0;
   inputStringPrepass = NULL;
   inputPositionPrepass = 0;
+  docBlockInBody = FALSE;
 
   //anonCount     = 0;  // don't reset per file
   mtype         = Method;
